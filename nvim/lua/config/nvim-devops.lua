@@ -20,7 +20,9 @@ local is_devops = (appname == "nvim-devops")
 
 -- Extra DevOps plugins/specs (only loaded when NVIM_APPNAME=nvim-devops)
 local function devops_spec()
-  if not is_devops then return {} end
+  if not is_devops then
+    return {}
+  end
   return {
     -- Go IDE experience
     {
@@ -43,7 +45,9 @@ local function devops_spec()
       "leoluz/nvim-dap-go",
       ft = { "go" },
       dependencies = { "mfussenegger/nvim-dap" },
-      config = function() require("dap-go").setup() end,
+      config = function()
+        require("dap-go").setup()
+      end,
     },
 
     -- Helm & YAML/Kubernetes
@@ -130,16 +134,29 @@ local function devops_spec()
         opts.ensure_installed = opts.ensure_installed or {}
         local extra = {
           -- Go
-          "gopls", "delve", "golangci-lint", "gofumpt", "goimports-reviser", "golines", "gomodifytags", "iferr", "impl", "gotests",
+          "gopls",
+          "delve",
+          "golangci-lint",
+          "gofumpt",
+          "goimports-reviser",
+          "golines",
+          "gomodifytags",
+          "iferr",
+          "impl",
+          "gotests",
           -- YAML/K8s
-          "yaml-language-server", "yamlfmt", "yamllint",
+          "yaml-language-server",
+          "yamlfmt",
+          "yamllint",
           -- Helm
           "helm-ls",
           -- Docker (often relevant in DevOps)
           "hadolint",
         }
         for _, t in ipairs(extra) do
-          if not vim.tbl_contains(opts.ensure_installed, t) then table.insert(opts.ensure_installed, t) end
+          if not vim.tbl_contains(opts.ensure_installed, t) then
+            table.insert(opts.ensure_installed, t)
+          end
         end
         return opts
       end,
@@ -159,8 +176,8 @@ local function devops_spec()
               },
             },
           },
-          yamlls = {},       -- configured via yaml-companion (above)
-          helm_ls = {},      -- helm language server (via mason "helm-ls")
+          yamlls = {}, -- configured via yaml-companion (above)
+          helm_ls = {}, -- helm language server (via mason "helm-ls")
         },
       },
     },
@@ -190,6 +207,49 @@ local function devops_spec()
         opts.linters_by_ft.yaml = { "yamllint" }
         opts.linters_by_ft.dockerfile = { "hadolint" }
         return opts
+      end,
+    },
+
+    -- 5) Orgmode
+    {
+      "nvim-orgmode/orgmode",
+      version = "*", -- or "latest"
+      ft = { "org" },
+      dependencies = {
+        "nvim-treesitter/nvim-treesitter",
+      },
+      config = function()
+        -- Load orgmode treesitter grammar
+        require("orgmode").setup_ts_grammar()
+
+        -- Setup treesitter
+        rrequire("nvim-treesitter.configs").setup({
+          highlight = {
+            enable = true,
+            additional_vim_regex_highlighting = { "org" },
+          },
+          ensure_installed = { "org" },
+        })
+
+        -- Basic orgmode config
+        require("orgmode").setup({
+          org_agenda_files = { "~/org/planner/*" },
+          org_default_notes_file = "~/org/refile.org",
+        })
+      end,
+    },
+
+    -- 5) Treesitter
+    {
+      "nvim-treesitter/nvim-treesitter",
+      opts = function(_, opts)
+        opts = opts or {}
+        opts.ensure_installed = opts.ensure_installed or {}
+        for _, lang in ipairs({ "norg", "norg_meta", "norg_table" }) do
+          if not vim.tbl_contains(opts.ensure_installed, lang) then
+            table.insert(opts.ensure_installed, lang)
+          end
+        end
       end,
     },
   }
@@ -231,7 +291,11 @@ require("lazy").setup({
     reset_packpath = true,
     rtp = {
       disabled_plugins = {
-        "gzip", "tarPlugin", "tohtml", "tutor", "zipPlugin",
+        "gzip",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
         -- "matchit", "matchparen", -- enable if you need them
         -- "netrwPlugin",          -- keep enabled if you rely on netrw
       },
@@ -240,4 +304,3 @@ require("lazy").setup({
 
   ui = { border = "rounded", size = { width = 0.85, height = 0.85 }, pills = false, wrap = false },
 })
-
