@@ -42,14 +42,62 @@ require("lazy").setup({
     {
       "epwalsh/obsidian.nvim",
       version = "*",
-      ft = "markdown",
-      dependencies = { "nvim-lua/plenary.nvim" },
+      -- don't use `ft = "markdown"`; preload before FileType fires
+      event = { "BufReadPre *.md", "BufNewFile *.md" },
+      dependencies = {
+        "nvim-lua/plenary.nvim",
+        -- these can be lazy; cmp core is already forced above
+        { "hrsh7th/cmp-buffer", enabled = false },
+        { "hrsh7th/cmp-path", enabled = false },
+        { "hrsh7th/cmp-nvim-lsp", enabled = false },
+        { "hrsh7th/nvim-cmp", enabled = false },
+        { "hrsh7th/cmp-buffer", enabled = false },
+        { "saadparwaiz1/cmp_luasnip", enabled = false },
+        { "L3MON4D3/LuaSnip", enabled = false }, -- if you don't actually use it with blink
+      },
+      -- only load if at least one workspace dir exists (or create them)
+      cond = function()
+        local dirs = {
+          vim.fn.expand("~/Documents/KCNA-Notes"),
+          vim.fn.expand("~/Documents/CKA-Notes"),
+          vim.fn.expand("~/Documents/ist-sidc"),
+        }
+        local any = false
+        for _, d in ipairs(dirs) do
+          if vim.fn.isdirectory(d) == 1 then
+            any = true
+          end
+        end
+        return any
+      end,
+      opts = function()
+        -- create missing vaults automatically (comment out if you prefer not to)
+        local function ensure(dir)
+          if vim.fn.isdirectory(dir) == 0 then
+            vim.fn.mkdir(dir, "p")
+          end
+        end
+        ensure(vim.fn.expand("~/Documents/KCNA-Notes"))
+        ensure(vim.fn.expand("~/Documents/CKA-Notes"))
+        ensure(vim.fn.expand("~/Documents/ist-sidc"))
+
+        return {
+          workspaces = {
+            { name = "kcna", path = "~/Documents/KCNA-Notes" },
+            { name = "cka", path = "~/Documents/CKA-Notes" },
+            { name = "msidc", path = "~/Documents/ist-sidc" },
+          },
+          daily_notes = { folder = "daily", date_format = "%Y-%m-%d" },
+          completion = { nvim_cmp = true },
+        }
+      end,
+    },
+    {
+      "saghen/blink.cmp",
+      version = "*",
       opts = {
-        workspaces = {
-          { name = "personal", path = "~/obsidian" },
-        },
-        daily_notes = { folder = "daily", date_format = "%Y-%m-%d" },
-        completion = { nvim_cmp = true },
+        keymap = { preset = "default" },
+        sources = { default = { "lsp", "path", "buffer" } },
       },
     },
 
