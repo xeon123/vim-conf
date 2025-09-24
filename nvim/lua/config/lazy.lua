@@ -100,6 +100,25 @@ require("lazy").setup({
         sources = { default = { "lsp", "path", "buffer" } },
       },
     },
+    {
+      "nvim-telescope/telescope.nvim",
+      opts = {
+        defaults = {
+          find_command = {
+            "fd",
+            "--type",
+            "f",
+            "--type",
+            "l",
+            "--color",
+            "never",
+            "--hidden",
+            "-E",
+            ".git",
+          },
+        },
+      },
+    },
 
     -- Profile-specific specs
     { import = "profiles." .. profile },
