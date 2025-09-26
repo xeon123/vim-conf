@@ -21,8 +21,7 @@ vim.opt.rtp:prepend(lazypath)
 local appname = vim.env.NVIM_APPNAME or "nvim"
 local profile = (appname == "nvim-devops") and "devops" or "main"
 
-require("lazy").setup({
-  spec = {
+local specs = {
     -- LazyVim core + plugins
     { "LazyVim/LazyVim", import = "lazyvim.plugins" },
     { import = "lazyvim.plugins.extras.ui.mini-animate" },
@@ -37,67 +36,6 @@ require("lazy").setup({
       dependencies = { "nvim-tree/nvim-web-devicons" },
       keys = {
         { "-", "<CMD>Oil<CR>", desc = "Open parent directory (oil)" },
-      },
-    },
-    {
-      "epwalsh/obsidian.nvim",
-      version = "*",
-      -- don't use `ft = "markdown"`; preload before FileType fires
-      event = { "BufReadPre *.md", "BufNewFile *.md" },
-      dependencies = {
-        "nvim-lua/plenary.nvim",
-        -- these can be lazy; cmp core is already forced above
-        { "hrsh7th/cmp-buffer", enabled = false },
-        { "hrsh7th/cmp-path", enabled = false },
-        { "hrsh7th/cmp-nvim-lsp", enabled = false },
-        { "hrsh7th/nvim-cmp", enabled = false },
-        { "hrsh7th/cmp-buffer", enabled = false },
-        { "saadparwaiz1/cmp_luasnip", enabled = false },
-        { "L3MON4D3/LuaSnip", enabled = false }, -- if you don't actually use it with blink
-      },
-      -- only load if at least one workspace dir exists (or create them)
-      cond = function()
-        local dirs = {
-          vim.fn.expand("~/Documents/KCNA-Notes"),
-          vim.fn.expand("~/Documents/CKA-Notes"),
-          vim.fn.expand("~/Documents/ist-sidc"),
-        }
-        local any = false
-        for _, d in ipairs(dirs) do
-          if vim.fn.isdirectory(d) == 1 then
-            any = true
-          end
-        end
-        return any
-      end,
-      opts = function()
-        -- create missing vaults automatically (comment out if you prefer not to)
-        local function ensure(dir)
-          if vim.fn.isdirectory(dir) == 0 then
-            vim.fn.mkdir(dir, "p")
-          end
-        end
-        ensure(vim.fn.expand("~/Documents/KCNA-Notes"))
-        ensure(vim.fn.expand("~/Documents/CKA-Notes"))
-        ensure(vim.fn.expand("~/Documents/ist-sidc"))
-
-        return {
-          workspaces = {
-            { name = "kcna", path = "~/Documents/KCNA-Notes" },
-            { name = "cka", path = "~/Documents/CKA-Notes" },
-            { name = "msidc", path = "~/Documents/ist-sidc" },
-          },
-          daily_notes = { folder = "daily", date_format = "%Y-%m-%d" },
-          completion = { nvim_cmp = true },
-        }
-      end,
-    },
-    {
-      "saghen/blink.cmp",
-      version = "*",
-      opts = {
-        keymap = { preset = "default" },
-        sources = { default = { "lsp", "path", "buffer" } },
       },
     },
     {
@@ -119,10 +57,133 @@ require("lazy").setup({
         },
       },
     },
+  }
 
-    -- Profile-specific specs
-    { import = "profiles." .. profile },
-  },
+if profile == "main" then
+  vim.list_extend(specs, {
+    {
+      "mason-org/mason.nvim",
+      opts = function(_, opts)
+        opts = opts or {}
+        opts.ensure_installed = opts.ensure_installed or {}
+        for _, t in ipairs({
+          "lua-language-server",
+          "stylua",
+          "bash-language-server",
+          "shfmt",
+          "shellcheck",
+          "marksman",
+        }) do
+          if not vim.tbl_contains(opts.ensure_installed, t) then
+            table.insert(opts.ensure_installed, t)
+          end
+        end
+        return opts
+      end,
+    },
+    {
+      "folke/which-key.nvim",
+      optional = true,
+      init = function()
+        local paths = {
+          "/usr/local/bin",
+          "/usr/bin",
+          vim.fn.expand("~/.local/bin"),
+          vim.fn.expand("~/bin"),
+          "/home/linuxbrew/.linuxbrew/bin",
+        }
+        local sep = (vim.loop.os_uname().sysname == "Windows_NT") and ";" or ":"
+        for _, p in ipairs(paths) do
+          if p ~= "" and not string.find(vim.env.PATH or "", vim.pesc(p), 1, true) then
+            vim.env.PATH = (vim.env.PATH or "") .. sep .. p
+          end
+        end
+      end,
+    },
+    {
+      "folke/snacks.nvim",
+      optional = true,
+      opts = {
+        picker = {
+          sources = {
+            files = {
+              cmd = function()
+                if vim.fn.executable("fd") == 1 then
+                  return {
+                    "fd",
+                    "--type",
+                    "f",
+                    "--type",
+                    "l",
+                    "--hidden",
+                    "--follow",
+                    "--color",
+                    "never",
+                    "--exclude",
+                    ".git",
+                  }
+                end
+                return {
+                  "rg",
+                  "--files",
+                  "--hidden",
+                  "--follow",
+                  "--glob",
+                  "!.git/*",
+                }
+              end,
+            },
+          },
+        },
+      },
+    },
+    {
+      "nvim-telescope/telescope.nvim",
+      optional = true,
+      opts = {
+        defaults = {
+          find_command = {
+            "fd",
+            "--type",
+            "f",
+            "--type",
+            "l",
+            "--hidden",
+            "--follow",
+            "--color",
+            "never",
+            "--exclude",
+            ".git",
+          },
+        },
+      },
+      init = function()
+        if vim.fn.executable("fd") ~= 1 then
+          local ok, telescope = pcall(require, "telescope")
+          if ok then
+            telescope.setup({
+              defaults = {
+                find_command = {
+                  "rg",
+                  "--files",
+                  "--hidden",
+                  "--follow",
+                  "--glob",
+                  "!.git/*",
+                },
+              },
+            })
+          end
+        end
+      end,
+    },
+  })
+elseif profile == "devops" then
+  table.insert(specs, { import = "profiles.devops" })
+end
+
+require("lazy").setup({
+  spec = specs,
 
   defaults = { lazy = false, version = false },
 
