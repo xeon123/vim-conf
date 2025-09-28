@@ -88,15 +88,18 @@ local mason_go_tools = {
   "hadolint",
 }
 
-local specs = {
-  -- LazyVim core + plugins
+local base_spec = {
+  -- LazyVim core plus optional local plugins
   { "LazyVim/LazyVim", import = "lazyvim.plugins" },
+  { import = "plugins" },
+}
+
+local specs = vim.deepcopy(base_spec)
+
+vim.list_extend(specs, {
   { import = "lazyvim.plugins.extras.ui.mini-animate" },
   { import = "lazyvim.plugins.extras.lang.json" },
   { import = "lazyvim.plugins.extras.util.project" },
-
-  -- Common plugins you want everywhere (optional "plugins" dir if you use it)
-  { import = "plugins" },
   {
     "stevearc/oil.nvim",
     opts = { default_file_explorer = true, view_options = { show_hidden = true } },
@@ -114,7 +117,7 @@ local specs = {
       return opts
     end,
   },
-}
+})
 
 local profile_specs = {
   main = {
