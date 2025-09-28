@@ -1,4 +1,5 @@
--- Bootstrap lazy.nvim
+-- lua/config/lazy.lua
+-- Bootstrap lazy.nvim ---------------------------------------------------------
 local uv = vim.uv or vim.loop
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not uv.fs_stat(lazypath) then
@@ -18,6 +19,7 @@ if not uv.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+-- Profile detection -----------------------------------------------------------
 local appname = vim.env.NVIM_APPNAME or "nvim"
 local profile = (vim.env.NVIM_PROFILE or appname):lower()
 profile = profile:gsub("^nvim%-", "")
@@ -25,6 +27,7 @@ if profile == "" or profile == "nvim" then
   profile = "main"
 end
 
+-- Helpers ---------------------------------------------------------------------
 local function ensure_tools(opts, tools)
   opts.ensure_installed = opts.ensure_installed or {}
   for _, tool in ipairs(tools) do
@@ -36,31 +39,12 @@ end
 
 local function preferred_files_cmd()
   if vim.fn.executable("fd") == 1 then
-    return {
-      "fd",
-      "--type",
-      "f",
-      "--type",
-      "l",
-      "--hidden",
-      "--follow",
-      "--color",
-      "never",
-      "--exclude",
-      ".git",
-    }
+    return { "fd", "--type", "f", "--type", "l", "--hidden", "--follow", "--color", "never", "--exclude", ".git" }
   end
-
-  return {
-    "rg",
-    "--files",
-    "--hidden",
-    "--follow",
-    "--glob",
-    "!.git/*",
-  }
+  return { "rg", "--files", "--hidden", "--follow", "--glob", "!.git/*" }
 end
 
+-- Tool lists for Mason --------------------------------------------------------
 local mason_common_tools = {
   "lua-language-server",
   "stylua",
@@ -88,18 +72,21 @@ local mason_go_tools = {
   "hadolint",
 }
 
-local base_spec = {
-  -- LazyVim core plus optional local plugins
+-- Base spec: core LazyVim only (must come first) ------------------------------
+local specs = {
   { "LazyVim/LazyVim", import = "lazyvim.plugins" },
-  { import = "plugins" },
 }
 
-local specs = vim.deepcopy(base_spec)
-
+-- Extras (must be after core, before your plugins) ----------------------------
 vim.list_extend(specs, {
   { import = "lazyvim.plugins.extras.ui.mini-animate" },
   { import = "lazyvim.plugins.extras.lang.json" },
   { import = "lazyvim.plugins.extras.util.project" },
+})
+
+-- Your custom plugins / opts extensions (still before local `plugins`) --------
+vim.list_extend(specs, {
+  -- File explorer (Oil)
   {
     "stevearc/oil.nvim",
     opts = { default_file_explorer = true, view_options = { show_hidden = true } },
@@ -108,6 +95,8 @@ vim.list_extend(specs, {
       { "-", "<CMD>Oil<CR>", desc = "Open parent directory (oil)" },
     },
   },
+
+  -- Telescope: prefer fd/rg command
   {
     "nvim-telescope/telescope.nvim",
     opts = function(_, opts)
@@ -117,29 +106,36 @@ vim.list_extend(specs, {
       return opts
     end,
   },
+
+  -- Treesitter: extend, don't overwrite
   {
     "nvim-treesitter/nvim-treesitter",
     build = ":TSUpdate",
-    config = function()
-      local ok, configs = pcall(require, "nvim-treesitter.configs")
-      if not ok then
-        vim.notify("nvim-treesitter is not installed", vim.log.levels.WARN)
-        return
+    opts = function(_, opts)
+      opts = opts or {}
+      opts.ensure_installed = opts.ensure_installed or {}
+      local want = { "go", "gomod", "gosum", "gowork", "lua", "vim", "query" }
+      for _, lang in ipairs(want) do
+        if not vim.tbl_contains(opts.ensure_installed, lang) then
+          table.insert(opts.ensure_installed, lang)
+        end
       end
-      configs.setup({
-        ensure_installed = { "go", "gomod", "gosum", "gowork", "lua", "vim", "query" },
-        highlight = { enable = true },
-      })
+      opts.highlight = opts.highlight or {}
+      opts.highlight.enable = true
+      return opts
     end,
   },
 })
 
+-- Profile-specific specs -------------------------------------------------------
 local profile_specs = {
   main = {
     -- Go IDE
     { import = "lazyvim.plugins.extras.lang.go" },
     { import = "lazyvim.plugins.extras.dap.core" },
     { import = "lazyvim.plugins.extras.test.core" },
+
+    -- Mason: ensure toolchains
     {
       "mason-org/mason.nvim",
       opts = function(_, opts)
@@ -149,6 +145,8 @@ local profile_specs = {
         return opts
       end,
     },
+
+    -- Ensure common PATHs for which-key hints and pickers
     {
       "folke/which-key.nvim",
       optional = true,
@@ -168,6 +166,8 @@ local profile_specs = {
         end
       end,
     },
+
+    -- Snacks picker: use our file command
     {
       "folke/snacks.nvim",
       optional = true,
@@ -182,6 +182,7 @@ local profile_specs = {
       },
     },
 
+    -- Go niceties that cooperate with LazyVim LSP
     {
       "ray-x/go.nvim",
       ft = { "go", "gomod", "gotmpl" },
@@ -190,7 +191,7 @@ local profile_specs = {
         gofmt = "gofumpt",
         fillstruct = "gopls",
         diagnostic = { virtual_text = true },
-        lsp_cfg = false, -- let LazyVim/lspconfig own LSP servers
+        lsp_cfg = false, -- keep lspconfig ownership with LazyVim
       },
       config = function(_, opts)
         require("go").setup(opts)
@@ -206,12 +207,16 @@ local profile_specs = {
       end,
     },
 
-    -- Helm & YAML/Kubernetes
+    -- Helm & YAML
     { "towolf/vim-helm", ft = { "helm", "yaml", "tpl" } },
     {
       "someone-stole-my-name/yaml-companion.nvim",
       ft = { "yaml", "yml" },
-      dependencies = { "neovim/nvim-lspconfig", "nvim-lua/plenary.nvim", "nvim-telescope/telescope.nvim" },
+      dependencies = {
+        "neovim/nvim-lspconfig",
+        "nvim-lua/plenary.nvim",
+        "nvim-telescope/telescope.nvim",
+      },
       config = function()
         local yc = require("yaml-companion")
         local cfg = yc.setup({
@@ -278,8 +283,17 @@ local profile_specs = {
             settings = {
               gopls = {
                 usePlaceholders = true,
-                analyses = { unusedparams = true, nilness = true, unusedwrite = true, fieldalignment = false },
-                hints = { rangeVariableTypes = true, parameterNames = true, constantValues = true },
+                analyses = {
+                  unusedparams = true,
+                  nilness = true,
+                  unusedwrite = true,
+                  fieldalignment = false,
+                },
+                hints = {
+                  rangeVariableTypes = true,
+                  parameterNames = true,
+                  constantValues = true,
+                },
               },
             },
           },
@@ -316,7 +330,6 @@ local profile_specs = {
         return opts
       end,
     },
-
   },
 }
 
@@ -324,6 +337,10 @@ for _, plugin in ipairs(profile_specs[profile] or {}) do
   table.insert(specs, plugin)
 end
 
+-- Local plugins import MUST be last -------------------------------------------
+table.insert(specs, { import = "plugins" })
+
+-- Setup -----------------------------------------------------------------------
 require("lazy").setup({
   spec = specs,
 
@@ -334,8 +351,7 @@ require("lazy").setup({
   checker = {
     enabled = true,
     notify = false,
-    -- aggressive but safe for big setups
-    frequency = 3600,
+    frequency = 3600, -- aggressive but safe
     concurrency = (uv.available_parallelism and uv.available_parallelism() or 4),
   },
 
