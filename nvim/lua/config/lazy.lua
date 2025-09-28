@@ -117,6 +117,21 @@ vim.list_extend(specs, {
       return opts
     end,
   },
+  {
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    config = function()
+      local ok, configs = pcall(require, "nvim-treesitter.configs")
+      if not ok then
+        vim.notify("nvim-treesitter is not installed", vim.log.levels.WARN)
+        return
+      end
+      configs.setup({
+        ensure_installed = { "go", "gomod", "gosum", "gowork", "lua", "vim", "query" },
+        highlight = { enable = true },
+      })
+    end,
+  },
 })
 
 local profile_specs = {
@@ -302,21 +317,6 @@ local profile_specs = {
       end,
     },
 
-    {
-      "nvim-treesitter/nvim-treesitter",
-      build = ":TSUpdate",
-      config = function()
-        local ok, configs = pcall(require, "nvim-treesitter.configs")
-        if not ok then
-          vim.notify("nvim-treesitter is not installed", vim.log.levels.WARN)
-          return
-        end
-        configs.setup({
-          ensure_installed = { "go", "gomod", "gosum", "gowork", "lua", "vim", "query" },
-          highlight = { enable = true },
-        })
-      end,
-    },
   },
 }
 
