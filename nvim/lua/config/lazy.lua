@@ -125,6 +125,15 @@ vim.list_extend(specs, {
       return opts
     end,
   },
+
+  -- Git diff indicators
+  {
+    "nvim-mini/mini.diff",
+    version = false,
+    config = function()
+      require("mini.diff").setup()
+    end,
+  },
 })
 
 -- Profile-specific specs -------------------------------------------------------
