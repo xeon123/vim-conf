@@ -134,6 +134,27 @@ vim.list_extend(specs, {
       require("mini.diff").setup()
     end,
   },
+
+  -- Terminal clipboard sync via OSC52
+  {
+    "ojroques/nvim-osc52",
+    config = function()
+      local osc52 = require("osc52")
+      vim.keymap.set("n", "<leader>y", osc52.copy_operator, { expr = true, desc = "Yank to system clipboard (OSC52)" })
+      vim.keymap.set("n", "<leader>yy", function()
+        osc52.copy(vim.fn.getreg("\""))
+      end, { desc = "Yank line to system clipboard" })
+      vim.keymap.set("v", "<leader>y", osc52.copy_visual, { desc = "Yank selection to system clipboard" })
+
+      vim.api.nvim_create_autocmd("TextYankPost", {
+        callback = function()
+          if vim.v.event.operator == "y" and vim.v.event.regname == "" then
+            osc52.copy_register("\"")
+          end
+        end,
+      })
+    end,
+  },
 })
 
 -- Profile-specific specs -------------------------------------------------------
@@ -180,15 +201,22 @@ local profile_specs = {
     {
       "folke/snacks.nvim",
       optional = true,
-      opts = {
-        picker = {
-          sources = {
-            files = {
-              cmd = preferred_files_cmd,
-            },
-          },
-        },
-      },
+      opts = function(_, opts)
+        opts = opts or {}
+        opts.picker = opts.picker or {}
+        opts.picker.sources = opts.picker.sources or {}
+
+        local files = opts.picker.sources.files or {}
+        local cmd = preferred_files_cmd()
+        if cmd and #cmd > 0 then
+          local bin = table.remove(cmd, 1)
+          files.cmd = bin
+          files.args = cmd
+        end
+        opts.picker.sources.files = files
+
+        return opts
+      end,
     },
 
     -- Go niceties that cooperate with LazyVim LSP
