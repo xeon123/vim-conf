@@ -28,33 +28,10 @@ return {
     end,
   },
 
-  -- Helm & YAML/Kubernetes
-  { "towolf/vim-helm", ft = { "helm", "yaml", "tpl" } },
-  {
-    "someone-stole-my-name/yaml-companion.nvim",
-    ft = { "yaml", "yml" },
-    dependencies = { "neovim/nvim-lspconfig", "nvim-lua/plenary.nvim", "nvim-telescope/telescope.nvim" },
-    config = function()
-      local yc = require("yaml-companion")
-      local cfg = yc.setup({
-        lspconfig = {
-          settings = {
-            yaml = {
-              format = { enable = true },
-              validate = true,
-              hover = true,
-              completion = true,
-              schemas = yc.get_buf_schema(0),
-              schemaStore = { enable = true },
-              schemaDownload = { enable = true },
-              kubernetes = { enabled = true },
-            },
-          },
-        },
-      })
-      require("lspconfig").yamlls.setup(cfg)
-    end,
-  },
+  -- Shared LSP/schema integrations avoid configuring yamlls twice.
+  { import = "lazyvim.plugins.extras.lang.yaml" },
+  { import = "lazyvim.plugins.extras.lang.helm" },
+  { import = "lazyvim.plugins.extras.lang.docker" },
 
   -- Overseer tasks
   {
@@ -140,7 +117,7 @@ return {
             },
           },
         },
-        yamlls = {}, -- configured by yaml-companion
+        yamlls = {},
         helm_ls = {}, -- mason installs "helm-ls"
       },
     },
@@ -155,7 +132,7 @@ return {
       opts.formatters_by_ft = opts.formatters_by_ft or {}
       opts.formatters_by_ft.go = { "gofumpt", "goimports_reviser", "golines" }
       opts.formatters_by_ft.yaml = { "yamlfmt" }
-      opts.formatters_by_ft.helm = { "yamlfmt" }
+      -- Helm templates are not plain YAML; leave them to the Helm integration.
       return opts
     end,
   },
@@ -181,11 +158,6 @@ return {
     ft = { "org" },
     dependencies = { "nvim-treesitter/nvim-treesitter" },
     config = function()
-      require("orgmode").setup_ts_grammar()
-      require("nvim-treesitter.configs").setup({
-        highlight = { enable = true, additional_vim_regex_highlighting = { "org" } },
-        ensure_installed = { "org" },
-      })
       require("orgmode").setup({
         org_agenda_files = { "~/org/planner/*" },
         org_default_notes_file = "~/org/refile.org",
