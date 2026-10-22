@@ -1,7 +1,8 @@
 # Neovim / LazyVim
 
 Configuração baseada em LazyVim, com Python (Pyright, Ruff, Black e debugpy),
-Bash, JSON, Oil e pesquisa de ficheiros pelo Snacks.
+Java, TypeScript/React, C#/.NET, ESLint, Prettier, Bash, JSON, Oil e pesquisa
+de ficheiros pelo Snacks. Noice está desativado.
 
 - `:Lazy update` atualiza os plugins; `lazy-lock.json` regista as versões usadas.
 - `:Lazy restore` restaura as versões do lockfile.
@@ -19,6 +20,11 @@ São necessários Neovim >= 0.11.2, Git, um compilador C e `rg` ou `fd`.
 O Mason instala as ferramentas configuradas; os pacotes Python precisam de
 Python com suporte a venv/pip e os servidores Node precisam de Node.js/npm.
 O LazyVim gere a instalação do tree-sitter-cli quando necessário.
+
+Para Java, é necessário um JDK compatível com o JDTLS instalado, além do JDK
+usado pelo projeto. Para C#, instale o SDK .NET correspondente ao projeto
+(`net10.0` requer o SDK .NET 10). Nos frontends, instale as dependências de cada
+projeto para usar as versões locais de TypeScript, ESLint e Prettier.
 
 Em Debian/Ubuntu, se o Mason falhar por falta de dependências:
 
