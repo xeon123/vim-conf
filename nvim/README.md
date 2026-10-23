@@ -26,6 +26,25 @@ usado pelo projeto. Para C#, instale o SDK .NET correspondente ao projeto
 (`net10.0` requer o SDK .NET 10). Nos frontends, instale as dependências de cada
 projeto para usar as versões locais de TypeScript, ESLint e Prettier.
 
+O OmniSharp usa sincronização completa e permite restaurar pacotes NuGet.
+O destaque automático de referências está desativado apenas neste servidor,
+para contornar a exceção `ArgumentOutOfRangeException` em `documentHighlight`.
+A pesquisa de referências continua disponível.
+
+Se aparecer `Predefined type 'System.Object' is not defined or imported`,
+execute na pasta da solução/projeto:
+
+```sh
+dotnet --version
+dotnet restore
+dotnet build --no-restore
+```
+
+Confirme que o SDK selecionado por `global.json` está instalado e que o build
+resolve as referências do framework. Depois, reabra o Neovim na pasta da
+solução (`.sln`/`.slnx`) ou do projeto (`.csproj`). Após alterar esta configuração,
+reinicie o Neovim para recriar o cliente LSP.
+
 Em Debian/Ubuntu, se o Mason falhar por falta de dependências:
 
 ```sh
